@@ -4,12 +4,12 @@ from dotenv import load_dotenv
 import openai
 import os
 import tempfile
+
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
 client = openai
 
 def speech_to_text(audio_data_path):
@@ -19,22 +19,21 @@ def speech_to_text(audio_data_path):
             response_format="text",
             file=audio_file
         )
-    return transcript
+    return {"text": transcript}
 
 def extract_fields(transcript):
     prompt = f"""
     You are a medical transcription service provider. Your main task is to extract all relevant fields of text from the transcript: {transcript}
-    and display them in a user form format. Please strictly adhere to the following format template:
-    **Patient Name:**
-    **Patient Age:**
+    and display them in a user form format. Please strictly adhere to the following format template use medical terms:
+    **Personal History:**
     **Chief Complaint:**
-    **Patient History:**
-    **Diagnosis:**
+    **Present Illness:**
+    **Medication History:**
+    **Past History:**
     **Family History:**
-    **Medications Used:**
     **Required Lab Tests and Procedures:**
 
-    Display each field on a new line, do not combine them into one sentence. Your main job is to facilitate data entry for doctors.
+    Display each field on a new line, do not combine them into one sentence. Your main job is to facilitate data entry for doctors use Medical terminologies to describe the cases.
     """
     response = client.chat.completions.create(
         model="gpt-4",
@@ -76,13 +75,13 @@ def extract():
 
     fields_result = extract_fields(transcript)
     fields = {
-        "patientName": fields_result.split("**Patient Name:**")[1].split("**Patient Age:**")[0].strip(),
-        "age": fields_result.split("**Patient Age:**")[1].split("**Chief Complaint:**")[0].strip(),
-        "chiefComplaint": fields_result.split("**Chief Complaint:**")[1].split("**Patient History:**")[0].strip(),
-        "presentIllness": fields_result.split("**Patient History:**")[1].split("**Diagnosis:**")[0].strip(),
-        "medicationHistory": fields_result.split("**Diagnosis:**")[1].split("**Family History:**")[0].strip(),
-        "familyHistory": fields_result.split("**Family History:**")[1].split("**Medications Used:**")[0].strip(),
-        "labTests": fields_result.split("**Medications Used:**")[1].split("**Required Lab Tests and Procedures:**")[0].strip(),
+        "personalHistory": fields_result.split("**Personal History:**")[1].split("**Chief Complaint:**")[0].strip(),
+        "chiefComplaint": fields_result.split("**Chief Complaint:**")[1].split("**Present Illness:**")[0].strip(),
+        "presentIllness": fields_result.split("**Present Illness:**")[1].split("**Medication History:**")[0].strip(),
+        "medicationHistory": fields_result.split("**Medication History:**")[1].split("**Past History:**")[0].strip(),
+        "pastHistory": fields_result.split("**Past History:**")[1].split("**Family History:**")[0].strip(),
+        "familyHistory": fields_result.split("**Family History:**")[1].split("**Required Lab Tests and Procedures:**")[0].strip(),
+        "requiredLabTestsAndProcedures": fields_result.split("**Required Lab Tests and Procedures:**")[1].strip(),
     }
     return jsonify(fields)
 
